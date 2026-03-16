@@ -7,10 +7,12 @@ import type { StreamCallbacks } from './gemini';
 import type { LanguageConfig } from './languages';
 import type { ConversationEntry } from './gemini';
 
-// In dev, use Vite proxy to bypass CORS. In production, call directly (or use your own proxy).
+// In dev, use Vite proxy to bypass CORS. In production, use our own
+// same-origin proxy (`/api/nvidia`) instead of calling NVIDIA directly
+// from the browser (which would fail due to CORS on Vercel).
 const NVIDIA_BASE_URL = import.meta.env.DEV
   ? '/nvidia-api/v1'
-  : (import.meta.env.VITE_NVIDIA_BASE_URL || 'https://integrate.api.nvidia.com/v1');
+  : '/api/nvidia/v1';
 const NVIDIA_API_KEY = import.meta.env.VITE_NVIDIA_API_KEY || '';
 
 export const NVIDIA_MODELS = [
@@ -37,11 +39,10 @@ export type NvidiaModelId = (typeof NVIDIA_MODELS)[number]['id'];
 export const DEFAULT_NVIDIA_MODEL: NvidiaModelId = 'google/gemma-3-27b-it';
 
 export function isNvidiaAvailable(): boolean {
-  // Only enable NVIDIA fallback in development, where the Vite proxy
-  // (`/nvidia-api`) can bypass CORS. In production (Vercel), calling
-  // integrate.api.nvidia.com directly from the browser will fail due
-  // to CORS, so we disable the fallback there.
-  return import.meta.env.DEV && NVIDIA_API_KEY.length > 0;
+  // Fallback is available whenever we have a key; in dev we hit the
+  // Vite proxy (`/nvidia-api`), in production we hit our own API
+  // route (`/api/nvidia`), so no direct cross-origin calls.
+  return NVIDIA_API_KEY.length > 0;
 }
 
 function buildNvidiaPrompt(
