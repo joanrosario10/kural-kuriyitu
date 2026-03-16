@@ -51,6 +51,7 @@ import { DEFAULT_NVIDIA_MODEL, type NvidiaModelId } from './lib/nvidiaFallback';
 import type { AIModelId } from './lib/gemini';
 import { runJS, type ExecutionResult } from './lib/jsRunner';
 import { runPython, looksLikePython } from './lib/pyRunner';
+import { normalizeReactCode } from './lib/reactCode';
 
 type StreamStatus = 'idle' | 'thinking' | 'coding' | 'explaining';
 
@@ -121,6 +122,17 @@ function App() {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', 'dark');
   }, []);
+
+  // Upgrade older AI snippets into full React files when a TSX/JSX file opens.
+  useEffect(() => {
+    if (!activeFile) return;
+    if (!['typescript', 'javascript'].includes(activeFile.language)) return;
+
+    const normalized = normalizeReactCode(code);
+    if (normalized && normalized !== code) {
+      setCode(normalized);
+    }
+  }, [activeFile, code, setCode]);
 
   // --- Live API lifecycle ---
   useEffect(() => {
@@ -209,8 +221,7 @@ function App() {
       if (available) {
         console.log('[Riva TTS] NVIDIA voice active (primary)');
       } else {
-        setRivaEnabled(false);
-        console.log('[Riva TTS] Proxy unavailable — falling back to Web Speech');
+        console.log('[Riva TTS] Proxy unavailable — will retry and fall back per request');
       }
     });
   }, []);
@@ -273,6 +284,15 @@ function App() {
           lang: language.ttsLang,
           onStart: callbacks?.onSpeakingStart,
           onEnd: callbacks?.onSpeakingEnd,
+          onFailed: (failedText) => {
+            speak(failedText, {
+              rate: speechRate,
+              voice: language.code.startsWith('en') ? voiceAccent || undefined : undefined,
+              lang: language.ttsLang,
+              onSpeakingStart: callbacks?.onSpeakingStart,
+              onSpeakingEnd: callbacks?.onSpeakingEnd,
+            });
+          },
         });
       } else {
         // Kill Riva completely — only Web Speech speaks (also used for Tamil)
@@ -631,13 +651,17 @@ function App() {
               });
             },
             onComplete: (completedCode, fullExplanation) => {
+              const normalizedCode = normalizeReactCode(completedCode);
+              if (normalizedCode) {
+                setCode(normalizedCode);
+              }
               finalExplanation = fullExplanation;
               const assistantEntry: ConversationEntry = {
                 id: crypto.randomUUID(),
                 timestamp: Date.now(),
                 role: 'assistant',
                 action: 'generate',
-                code: completedCode,
+                code: normalizedCode || completedCode,
                 explanation: fullExplanation,
               };
               setHistory((prev) => [...prev, assistantEntry]);

@@ -53,8 +53,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { body: multipartBody, boundary } = buildMultipartBody({
       text: text.trim(),
       voice,
+      voice_name: voice,
+      language_code,
       language: language_code,
+      sample_rate_hz: String(sample_rate),
       sample_rate: String(sample_rate),
+      encoding: 'LINEAR_PCM',
     });
 
     const upstream = await fetch(NVCF_TTS_URL, {
@@ -62,7 +66,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': `multipart/form-data; boundary=${boundary}`,
-        'Content-Length': String(Buffer.byteLength(multipartBody, 'utf8')),
       },
       body: multipartBody,
     });
@@ -70,7 +73,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!upstream.ok) {
       const errText = await upstream.text();
       console.error('[api/riva-tts] Upstream:', upstream.status, errText.slice(0, 200));
-      return sendJsonError(502, 'TTS service unavailable');
+      return sendJsonError(502, `TTS service unavailable (${upstream.status})`);
     }
 
     const contentType = upstream.headers.get('content-type') || 'audio/wav';

@@ -95,6 +95,7 @@ export async function speakWithRiva(
     });
 
     if (!response.ok) {
+      rivaAvailable = false;
       console.warn('[Riva TTS] Request failed:', response.status);
       return false;
     }
@@ -126,8 +127,8 @@ export async function speakWithRiva(
 
     return true;
   } catch (err) {
+    rivaAvailable = false;
     console.warn('[Riva TTS] Error:', err);
-    options.onEnd?.();
     return false;
   }
 }
@@ -182,7 +183,7 @@ async function playNext(): Promise<void> {
     // If Riva fails, notify caller so it can fall back to Web Speech
     item.onFailed?.(item.text);
     item.onEnd?.();
-    playNext();
+    void playNext();
   }
 }
 
