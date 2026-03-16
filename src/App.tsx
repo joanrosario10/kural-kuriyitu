@@ -214,10 +214,14 @@ function App() {
     listProjects().then(setSavedProjects).catch(() => {});
   }, []);
 
-  // --- Check Riva TTS availability on mount (primary voice) ---
+  // --- Check Riva TTS availability ---
+  // In production, do NOT probe `/api/riva-tts/` on page load (it can 502 if not configured).
+  // Only probe when the user explicitly enables Riva.
   useEffect(() => {
+    if (!import.meta.env.DEV && !rivaEnabled) return;
     if (rivaCheckedRef.current) return;
     rivaCheckedRef.current = true;
+
     checkRivaAvailable().then((available) => {
       if (available) {
         console.log('[Riva TTS] NVIDIA voice active (primary)');
@@ -227,7 +231,7 @@ function App() {
         setRivaEnabled(false);
       }
     });
-  }, []);
+  }, [rivaEnabled]);
 
   // --- Keep refs in sync with state (avoids stale closures in timers) ---
   useEffect(() => { isStreamingRef.current = isStreaming; }, [isStreaming]);
