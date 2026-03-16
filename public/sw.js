@@ -33,25 +33,12 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
 
+  // Let the browser handle cross-origin requests directly. Intercepting CDN assets
+  // here can force CORS-mode fetches that fail for fonts and other opaque responses.
+  if (url.origin !== self.location.origin) return;
+
   // Skip WebSocket and API calls
   if (url.protocol === 'wss:' || url.hostname === 'generativelanguage.googleapis.com') return;
-
-  // CDN resources (Pyodide, React, Babel) — cache-first
-  if (url.hostname.includes('cdn.jsdelivr.net') || url.hostname.includes('unpkg.com')) {
-    event.respondWith(
-      caches.match(event.request).then((cached) => {
-        if (cached) return cached;
-        return fetch(event.request).then((response) => {
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          }
-          return response;
-        });
-      })
-    );
-    return;
-  }
 
   // App assets — stale-while-revalidate
   event.respondWith(

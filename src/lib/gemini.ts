@@ -145,17 +145,6 @@ function stripCodeFences(code: string): string {
     .trim();
 }
 
-function stripImports(code: string): string {
-  return code
-    .split('\n')
-    .filter((line) => !/^\s*import\s+/.test(line))
-    .join('\n')
-    .replace(/export\s+default\s+\w+\s*;?\s*$/gm, '')
-    .replace(/export\s+default\s+/g, '')
-    .replace(/export\s+\{[^}]*\}\s*;?\s*/g, '')
-    .trim();
-}
-
 function parseMarkers(text: string): ParsedMarkers {
   const actionMatch = text.match(/---ACTION---\s*([\s\S]*?)(?=---CODE---|---EXPLAIN---|$)/);
   const codeMatch = text.match(/---CODE---\s*([\s\S]*?)(?=---EXPLAIN---|$)/);
@@ -202,6 +191,7 @@ export async function processVoiceCommandStream(
     const response = await ai.models.generateContentStream({
       model,
       contents: prompt,
+      config: { maxOutputTokens: 4096 },
     });
 
     for await (const chunk of response) {

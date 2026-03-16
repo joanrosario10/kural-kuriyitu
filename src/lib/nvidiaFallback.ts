@@ -119,17 +119,6 @@ function stripCodeFences(code: string): string {
     .trim();
 }
 
-function stripImports(code: string): string {
-  return code
-    .split('\n')
-    .filter((line) => !/^\s*import\s+/.test(line))
-    .join('\n')
-    .replace(/export\s+default\s+\w+\s*;?\s*$/gm, '')
-    .replace(/export\s+default\s+/g, '')
-    .replace(/export\s+\{[^}]*\}\s*;?\s*/g, '')
-    .trim();
-}
-
 function parseMarkers(text: string): ParsedMarkers {
   const actionMatch = text.match(/---ACTION---\s*([\s\S]*?)(?=---CODE---|---EXPLAIN---|$)/);
   const codeMatch = text.match(/---CODE---\s*([\s\S]*?)(?=---EXPLAIN---|$)/);
@@ -191,7 +180,7 @@ export async function processWithNvidia(
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.2,
         top_p: 0.7,
-        max_tokens: 1024,
+        max_tokens: 4096,
         stream: true,
       }),
       signal,

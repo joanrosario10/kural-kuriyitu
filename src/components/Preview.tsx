@@ -38,6 +38,25 @@ function looksLikeJsx(code: string): boolean {
     /<[A-Z]\w*[\s/>]/.test(code);
 }
 
+/** Detect likely incomplete code (unbalanced braces) so we show a hint instead of "Script error." */
+function isLikelyIncomplete(code: string): boolean {
+  const trimmed = code.trim();
+  if (!trimmed) return false;
+  let depth = 0;
+  const inString = (s: string, i: number) => {
+    const before = s.slice(0, i);
+    const single = (before.match(/'/g) ?? []).length - (before.match(/\\'/g) ?? []).length;
+    const double = (before.match(/"/g) ?? []).length - (before.match(/\\"/g) ?? []).length;
+    return (single % 2 !== 0) || (double % 2 !== 0);
+  };
+  for (let i = 0; i < trimmed.length; i++) {
+    if (inString(trimmed, i)) continue;
+    if (trimmed[i] === '{') depth++;
+    else if (trimmed[i] === '}') depth--;
+  }
+  return depth > 0;
+}
+
 function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
@@ -73,6 +92,9 @@ function buildSrcDoc(rawCode: string): string {
 
   // React / JSX
   if (looksLikeReact(code)) {
+    if (isLikelyIncomplete(code)) {
+      return buildIncompleteCodeDoc();
+    }
     return buildReactDoc(code);
   }
 
@@ -109,6 +131,15 @@ function wrapHtml(body: string, script?: string): string {
 </head><body>
 ${body}
 ${script ? `<script>${script}</script>` : ''}
+</body></html>`;
+}
+
+function buildIncompleteCodeDoc(): string {
+  const msg = 'Code appears incomplete (e.g. missing return or closing braces). Ask the assistant to continue or finish the component.';
+  return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:20px;font-family:system-ui,sans-serif;background:#0f172a;color:#e2e8f0;display:flex;align-items:center;justify-content:center;min-height:100vh;box-sizing:border-box;">
+  <p style="max-width:420px;text-align:center;line-height:1.6;">${msg}</p>
 </body></html>`;
 }
 
@@ -157,7 +188,12 @@ ${BASE_STYLES}
 <script>
 window.onerror = function(msg, src, line, col, err) {
   var el = document.getElementById('error-overlay');
-  if (el) { el.textContent = (err ? err.message : String(msg)); el.classList.add('visible'); }
+  if (el) {
+    var text = (err && err.message) ? err.message : String(msg);
+    if (text === 'Script error.' || !text) text = 'Something went wrong. The code may be incomplete or have a syntax error. Try asking the assistant to continue or fix it.';
+    el.textContent = text;
+    el.classList.add('visible');
+  }
 };
 </script>
 <script type="text/babel" data-presets="react">
@@ -169,7 +205,11 @@ ${cleaned}
 ${renderCall}
 } catch (err) {
   const el = document.getElementById('error-overlay');
-  if (el) { el.textContent = err.message || String(err); el.classList.add('visible'); }
+  if (el) {
+    const text = (err && err.message) ? err.message : String(err);
+    el.textContent = text || 'Code has an error. Check the component and try again.';
+    el.classList.add('visible');
+  }
 }
 </script>
 </body></html>`;
