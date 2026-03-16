@@ -7,12 +7,10 @@ import type { StreamCallbacks } from './gemini';
 import type { LanguageConfig } from './languages';
 import type { ConversationEntry } from './gemini';
 
-// In dev, use Vite proxy to bypass CORS. In production, use our own
-// same-origin proxy (`/api/nvidia`) instead of calling NVIDIA directly
-// from the browser (which would fail due to CORS on Vercel).
-const NVIDIA_BASE_URL = import.meta.env.DEV
-  ? '/nvidia-api/v1'
-  : '/api/nvidia/v1';
+// In dev, use Vite proxy. In prod, single route /api/nvidia (no path segments on Vercel).
+const NVIDIA_CHAT_URL = import.meta.env.DEV
+  ? '/nvidia-api/v1/chat/completions'
+  : '/api/nvidia';
 const NVIDIA_API_KEY = import.meta.env.VITE_NVIDIA_API_KEY || '';
 
 export const NVIDIA_MODELS = [
@@ -176,7 +174,7 @@ export async function processWithNvidia(
   let actionEmitted = false;
 
   try {
-    const response = await fetch(`${NVIDIA_BASE_URL}/chat/completions`, {
+    const response = await fetch(NVIDIA_CHAT_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

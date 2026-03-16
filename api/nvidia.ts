@@ -1,8 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+const NVIDIA_CHAT_URL = 'https://integrate.api.nvidia.com/v1/chat/completions';
+
 /**
- * Catch-all proxy for NVIDIA NIM: /api/nvidia/v1/chat/completions etc.
- * Forwards to https://integrate.api.nvidia.com to avoid browser CORS.
+ * Single-route proxy for NVIDIA NIM chat/completions.
+ * Frontend calls POST /api/nvidia; we forward to NVIDIA to avoid CORS.
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -15,14 +17,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'NVIDIA API key not configured' });
   }
 
-  const pathSegments = req.query.path;
-  const path = Array.isArray(pathSegments) ? pathSegments.join('/') : String(pathSegments || '');
-  const upstreamPath = path ? `/${path}` : '';
-
   try {
-    const url = `https://integrate.api.nvidia.com${upstreamPath}`;
-
-    const upstream = await fetch(url, {
+    const upstream = await fetch(NVIDIA_CHAT_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
