@@ -1,5 +1,5 @@
-import { useMemo, useState, useCallback, useEffect } from 'react';
-import { FullscreenIcon, FullscreenExitIcon, CloseIcon } from './Icons';
+import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
+import { FullscreenIcon, FullscreenExitIcon, CloseIcon, DownloadIcon } from './Icons';
 
 interface PreviewProps {
   code: string;
@@ -8,39 +8,16 @@ interface PreviewProps {
 }
 
 /**
- * Detect what kind of code we have and build the appropriate iframe srcDoc.
- * Supports: plain HTML, vanilla JS, and React/JSX (compiled via Babel standalone).
+ * Strip markdown code fences and language labels.
  */
-function buildSrcDoc(code: string): string {
-  const trimmed = code.trim();
-  if (!trimmed) return '';
-
-  // ── Plain HTML ──
-  if (trimmed.startsWith('<!') || (trimmed.startsWith('<') && !looksLikeJsx(trimmed))) {
-    return buildHtmlDoc(trimmed);
-  }
-
-  // ── React / JSX / TypeScript with JSX ──
-  if (looksLikeReact(trimmed)) {
-    return buildReactDoc(trimmed);
-  }
-
-  // ── Vanilla JS that touches the DOM ──
-  if (trimmed.includes('document.') || trimmed.includes('innerHTML')) {
-    return wrapHtml('<div id="app"></div>', trimmed);
-  }
-
-  // ── Plain JS (console-only or unknown) — show as syntax-highlighted pre ──
-  return wrapHtml(
-    `<pre style="margin:0;white-space:pre-wrap;color:#e0e6ed;font-family:monospace;font-size:13px;">${escapeHtml(trimmed)}</pre>`,
-  );
-}
-
-function looksLikeJsx(code: string): boolean {
-  // JSX-specific patterns: component tags, React hooks, arrow returns with JSX
-  return /(?:function\s+\w+|const\s+\w+\s*=)[\s\S]*?return\s*\(/.test(code) ||
-    /(?:useState|useEffect|useRef|useCallback|useMemo)\s*\(/.test(code) ||
-    /<[A-Z]\w*[\s/>]/.test(code);
+function stripCodeFences(code: string): string {
+  let cleaned = code.trim();
+  // Remove opening fences: ```javascript, ```jsx, ```tsx, etc.
+  cleaned = cleaned.replace(/^```\w*\s*\n?/gm, '');
+  // Remove closing fences
+  cleaned = cleaned.replace(/\n?```\s*$/gm, '');
+  cleaned = cleaned.replace(/^```\s*/g, '').replace(/\s*```$/g, '');
+  return cleaned.trim();
 }
 
 function looksLikeReact(code: string): boolean {
@@ -48,9 +25,6 @@ function looksLikeReact(code: string): boolean {
     code.includes('useState') ||
     code.includes('useEffect') ||
     code.includes('useRef') ||
-    code.includes('React') ||
-    code.includes('jsx') ||
-    code.includes('JSX') ||
     /import\s+.*from\s+['"]react['"]/.test(code) ||
     /<[A-Z]\w*[\s/>]/.test(code) ||
     /export\s+default\s+/.test(code) ||
@@ -58,15 +32,63 @@ function looksLikeReact(code: string): boolean {
   );
 }
 
+function looksLikeJsx(code: string): boolean {
+  return /(?:function\s+\w+|const\s+\w+\s*=)[\s\S]*?return\s*\(/.test(code) ||
+    /(?:useState|useEffect|useRef|useCallback|useMemo)\s*\(/.test(code) ||
+    /<[A-Z]\w*[\s/>]/.test(code);
+}
+
 function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-/** Build a full HTML document from raw HTML content (may contain <script>, <style>, etc.) */
-function buildHtmlDoc(html: string): string {
-  // If it already has <html> or <!DOCTYPE>, use it as-is
-  if (html.includes('<html') || html.includes('<!DOCTYPE')) return html;
+const TAILWIND_CDN = 'https://cdn.tailwindcss.com';
+const REACT_CDN = 'https://unpkg.com/react@18/umd/react.development.js';
+const REACT_DOM_CDN = 'https://unpkg.com/react-dom@18/umd/react-dom.development.js';
+const BABEL_CDN = 'https://unpkg.com/@babel/standalone@7/babel.min.js';
 
+const BASE_STYLES = `
+* { box-sizing: border-box; margin: 0; }
+body {
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  margin: 0; padding: 16px;
+  background: #fff; color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+}
+input, button, textarea, select { font-family: inherit; font-size: inherit; }
+`;
+
+/**
+ * Build srcDoc based on code type.
+ */
+function buildSrcDoc(rawCode: string): string {
+  const code = stripCodeFences(rawCode);
+  if (!code) return '';
+
+  // Plain HTML
+  if (code.startsWith('<!') || (code.startsWith('<') && !looksLikeJsx(code))) {
+    return buildHtmlDoc(code);
+  }
+
+  // React / JSX
+  if (looksLikeReact(code)) {
+    return buildReactDoc(code);
+  }
+
+  // Vanilla JS with DOM
+  if (code.includes('document.') || code.includes('innerHTML')) {
+    return wrapHtml(`<div id="app"></div>`, code);
+  }
+
+  // Plain code — show as pre
+  return wrapHtml(
+    `<pre style="margin:0;white-space:pre-wrap;color:#334155;font-family:ui-monospace,monospace;font-size:13px;padding:16px;">${escapeHtml(code)}</pre>`,
+  );
+}
+
+function buildHtmlDoc(html: string): string {
+  if (html.includes('<html') || html.includes('<!DOCTYPE')) return html;
   const scriptMatch = html.match(/<script[^>]*>([\s\S]*?)<\/script>/i);
   const script = scriptMatch ? scriptMatch[1].trim() : undefined;
   const withoutScript = scriptMatch
@@ -82,32 +104,30 @@ function wrapHtml(body: string, script?: string): string {
 <html><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<style>body{font-family:system-ui,sans-serif;margin:16px;background:#fff;color:#111}*{box-sizing:border-box}</style>
+<script src="${TAILWIND_CDN}"></script>
+<style>${BASE_STYLES}</style>
 </head><body>
 ${body}
-${script ? `<script>${script}<\/script>` : ''}
+${script ? `<script>${script}</script>` : ''}
 </body></html>`;
 }
 
-/**
- * Build an HTML document that loads React + ReactDOM + Babel standalone,
- * transpiles the user's JSX code in-browser, and renders it.
- */
 function buildReactDoc(code: string): string {
-  // Strip import/export statements — the CDN provides React globally
+  // Strip imports and exports line by line
   const cleaned = code
-    .replace(/import\s+[\s\S]*?from\s+['"][^'"]*['"]\s*;?\s*/g, '')
+    .split('\n')
+    .filter((line) => !/^\s*import\s+/.test(line))
+    .join('\n')
     .replace(/export\s+default\s+/g, '')
     .replace(/export\s+\{[^}]*\}\s*;?\s*/g, '')
     .replace(/export\s+/g, '')
     .trim();
 
-  // Find the default component name (function ComponentName or const ComponentName)
+  // Find component name
   const fnMatch = cleaned.match(/function\s+([A-Z]\w*)\s*\(/);
   const constMatch = cleaned.match(/const\s+([A-Z]\w*)\s*=/);
   const componentName = fnMatch?.[1] ?? constMatch?.[1] ?? null;
 
-  // Build the render call
   const renderCall = componentName
     ? `ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(${componentName}));`
     : '';
@@ -116,25 +136,31 @@ function buildReactDoc(code: string): string {
 <html><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="${TAILWIND_CDN}"></script>
 <style>
-  body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 16px; background: #fff; color: #111; }
-  * { box-sizing: border-box; }
-  #root { min-height: 100vh; }
-  #error-overlay {
-    display: none; position: fixed; inset: 0; z-index: 9999;
-    background: rgba(10,10,15,0.95); color: #ff4466;
-    padding: 24px; font-family: monospace; font-size: 13px;
-    white-space: pre-wrap; overflow: auto;
-  }
-  #error-overlay.visible { display: block; }
+${BASE_STYLES}
+#root { min-height: 100vh; }
+#error-overlay {
+  display: none; position: fixed; inset: 0; z-index: 9999;
+  background: rgba(10,10,15,0.95); color: #ff4466;
+  padding: 24px; font-family: monospace; font-size: 13px;
+  white-space: pre-wrap; overflow: auto;
+}
+#error-overlay.visible { display: block; }
 </style>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"><\/script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"><\/script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>
+<script src="${REACT_CDN}"></script>
+<script src="${REACT_DOM_CDN}"></script>
+<script src="${BABEL_CDN}"></script>
 </head><body>
 <div id="root"></div>
 <div id="error-overlay"></div>
-<script type="text/babel" data-type="module">
+<script>
+window.onerror = function(msg, src, line, col, err) {
+  var el = document.getElementById('error-overlay');
+  if (el) { el.textContent = (err ? err.message : String(msg)); el.classList.add('visible'); }
+};
+</script>
+<script type="text/babel" data-presets="react">
 try {
   const { useState, useEffect, useRef, useCallback, useMemo, useReducer, useContext, createContext, Fragment } = React;
 
@@ -145,19 +171,28 @@ ${renderCall}
   const el = document.getElementById('error-overlay');
   if (el) { el.textContent = err.message || String(err); el.classList.add('visible'); }
 }
-<\/script>
-<script>
-  // Catch Babel compilation errors
-  window.onerror = function(msg) {
-    const el = document.getElementById('error-overlay');
-    if (el) { el.textContent = String(msg); el.classList.add('visible'); }
-  };
-<\/script>
+</script>
 </body></html>`;
+}
+
+function downloadPreview(srcDoc: string, code: string): void {
+  const nameMatch = code.match(/function\s+([A-Z]\w*)/);
+  const fileName = nameMatch ? `${nameMatch[1]}.html` : 'preview.html';
+  const blob = new Blob([srcDoc], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 export function Preview({ code, className = '', style }: PreviewProps) {
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const fullIframeRef = useRef<HTMLIFrameElement>(null);
 
   const srcDoc = useMemo(() => buildSrcDoc(code), [code]);
 
@@ -165,7 +200,10 @@ export function Preview({ code, className = '', style }: PreviewProps) {
     setIsFullScreen((prev) => !prev);
   }, []);
 
-  // Escape key exits full-screen
+  const handleDownload = useCallback(() => {
+    if (srcDoc) downloadPreview(srcDoc, code);
+  }, [srcDoc, code]);
+
   useEffect(() => {
     if (!isFullScreen) return;
     const handleKey = (e: KeyboardEvent) => {
@@ -175,7 +213,6 @@ export function Preview({ code, className = '', style }: PreviewProps) {
     return () => document.removeEventListener('keydown', handleKey);
   }, [isFullScreen]);
 
-  // Nothing to preview
   if (!srcDoc) return null;
 
   const previewHeader = (
@@ -198,6 +235,15 @@ export function Preview({ code, className = '', style }: PreviewProps) {
         )}
         <button
           type="button"
+          onClick={handleDownload}
+          className="icon-btn"
+          aria-label="Download as HTML"
+          title="Download as HTML"
+        >
+          <DownloadIcon size={18} />
+        </button>
+        <button
+          type="button"
           onClick={toggleFullScreen}
           className="icon-btn"
           aria-label={isFullScreen ? 'Exit full screen' : 'Full screen preview'}
@@ -209,7 +255,6 @@ export function Preview({ code, className = '', style }: PreviewProps) {
     </div>
   );
 
-  // Full-screen overlay
   if (isFullScreen) {
     return (
       <>
@@ -243,30 +288,48 @@ export function Preview({ code, className = '', style }: PreviewProps) {
                 Full Screen Preview
               </span>
             </div>
-            <button
-              type="button"
-              onClick={toggleFullScreen}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all"
-              style={{
-                background: 'rgba(0, 212, 255, 0.1)',
-                border: '1px solid rgba(0, 212, 255, 0.2)',
-                color: 'var(--jarvis-cyan)',
-              }}
-              onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(0, 212, 255, 0.18)'; }}
-              onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(0, 212, 255, 0.1)'; }}
-              aria-label="Exit full screen"
-            >
-              <CloseIcon size={18} />
-              <span className="text-sm font-medium">Exit</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleDownload}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all"
+                style={{
+                  background: 'rgba(118, 185, 0, 0.1)',
+                  border: '1px solid rgba(118, 185, 0, 0.2)',
+                  color: '#76b900',
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(118, 185, 0, 0.18)'; }}
+                onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(118, 185, 0, 0.1)'; }}
+                aria-label="Download"
+              >
+                <DownloadIcon size={18} />
+                <span className="text-sm font-medium">Download</span>
+              </button>
+              <button
+                type="button"
+                onClick={toggleFullScreen}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all"
+                style={{
+                  background: 'rgba(0, 212, 255, 0.1)',
+                  border: '1px solid rgba(0, 212, 255, 0.2)',
+                  color: 'var(--jarvis-cyan)',
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(0, 212, 255, 0.18)'; }}
+                onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(0, 212, 255, 0.1)'; }}
+                aria-label="Exit full screen"
+              >
+                <CloseIcon size={18} />
+                <span className="text-sm font-medium">Exit</span>
+              </button>
+            </div>
           </div>
           <div className="flex-1 min-h-0" style={{ background: '#ffffff' }}>
             <iframe
+              ref={fullIframeRef}
               title="Preview – Full Screen"
               srcDoc={srcDoc}
               className="w-full h-full border-0"
               style={{ background: '#ffffff' }}
-              sandbox="allow-scripts"
             />
           </div>
         </div>
@@ -282,11 +345,11 @@ export function Preview({ code, className = '', style }: PreviewProps) {
         style={{ minHeight: 260, background: '#ffffff' }}
       >
         <iframe
+          ref={iframeRef}
           title="Preview"
           srcDoc={srcDoc}
           className="w-full border-0"
           style={{ minHeight: 260, height: '100%', background: '#ffffff' }}
-          sandbox="allow-scripts"
         />
       </div>
     </div>

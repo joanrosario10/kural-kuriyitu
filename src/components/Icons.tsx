@@ -147,3 +147,18 @@ export function ExpandMoreIcon({ className = '', size = 24 }: IconProps) {
     </svg>
   );
 }
+
+export function DownloadIcon({ className = '', size = 24 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className={className}
+      aria-hidden
+    >
+      <path d="M5 20h14v-2H5v2zm7-18v12l4-4h3L12 17 5 10h3l4 4V2z" />
+    </svg>
+  );
+}

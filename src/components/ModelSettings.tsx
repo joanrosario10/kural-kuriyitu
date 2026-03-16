@@ -1,13 +1,17 @@
 import { useState, useRef, useEffect } from 'react';
 import { SettingsIcon, ExpandMoreIcon } from './Icons';
 import { VOICE_ACCENTS, type VoiceAccent } from '../lib/speech';
-import type { LanguageConfig } from '../lib/languages';
+import { LANGUAGES, type LanguageConfig } from '../lib/languages';
 import type { LiveModel, GeminiVoice, LiveConnectionState } from '../lib/liveApi';
+import { NVIDIA_MODELS, type NvidiaModelId } from '../lib/nvidiaFallback';
+import { AI_MODELS, type AIModelId } from '../lib/gemini';
+import { RIVA_VOICES, type RivaVoice } from '../lib/rivaTts';
 
 interface ModelSettingsProps {
   voiceAccent: VoiceAccent;
   onVoiceAccentChange: (accent: VoiceAccent) => void;
   language: LanguageConfig;
+  onLanguageChange: (lang: LanguageConfig) => void;
   speechRate: number;
   onSpeechRateChange: (rate: number) => void;
   // Live API settings
@@ -18,6 +22,16 @@ interface ModelSettingsProps {
   liveConnectionState: LiveConnectionState;
   onToggleLiveApi: () => void;
   liveApiEnabled: boolean;
+  // Code gen model settings
+  codeModel: AIModelId;
+  onCodeModelChange: (model: AIModelId) => void;
+  nvidiaModel: NvidiaModelId;
+  onNvidiaModelChange: (model: NvidiaModelId) => void;
+  // Riva TTS settings
+  rivaEnabled: boolean;
+  onRivaToggle: () => void;
+  rivaVoice: RivaVoice;
+  onRivaVoiceChange: (voice: RivaVoice) => void;
 }
 
 const LIVE_MODELS: { id: LiveModel; label: string; description: string }[] = [
@@ -37,6 +51,7 @@ export function ModelSettings({
   voiceAccent,
   onVoiceAccentChange,
   language,
+  onLanguageChange,
   speechRate,
   onSpeechRateChange,
   liveModel,
@@ -46,6 +61,14 @@ export function ModelSettings({
   liveConnectionState,
   onToggleLiveApi,
   liveApiEnabled,
+  codeModel,
+  onCodeModelChange,
+  nvidiaModel,
+  onNvidiaModelChange,
+  rivaEnabled,
+  onRivaToggle,
+  rivaVoice,
+  onRivaVoiceChange,
 }: ModelSettingsProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -104,6 +127,30 @@ export function ModelSettings({
             <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--jarvis-text-muted)' }}>
               Voice & AI Settings
             </span>
+          </div>
+
+          {/* Language Selector */}
+          <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--jarvis-border)' }}>
+            <label className="block text-[10px] font-medium mb-1.5 uppercase tracking-wider" style={{ color: 'var(--jarvis-text-muted)' }}>
+              Language / மொழி
+            </label>
+            <div className="flex flex-wrap gap-1.5">
+              {LANGUAGES.map((lang) => (
+                <button
+                  key={lang.code}
+                  type="button"
+                  onClick={() => onLanguageChange(lang)}
+                  className="px-2.5 py-1 rounded-full text-[10px] font-medium transition-all"
+                  style={{
+                    background: language.code === lang.code ? 'rgba(0, 212, 255, 0.15)' : 'rgba(20, 20, 40, 0.5)',
+                    color: language.code === lang.code ? 'var(--jarvis-cyan)' : 'var(--jarvis-text-dim)',
+                    border: `1px solid ${language.code === lang.code ? 'rgba(0, 212, 255, 0.3)' : 'var(--jarvis-border)'}`,
+                  }}
+                >
+                  {lang.nativeName}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Live API Toggle */}
@@ -193,11 +240,60 @@ export function ModelSettings({
             </div>
           )}
 
+          {/* Code Generation Model (Gemini primary) */}
+          <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--jarvis-border)' }}>
+            <label className="block text-[10px] font-medium mb-1.5 uppercase tracking-wider" style={{ color: 'var(--jarvis-text-muted)' }}>
+              Code Gen Model (Primary)
+            </label>
+            <select
+              value={codeModel}
+              onChange={(e) => onCodeModelChange(e.target.value as AIModelId)}
+              className="w-full px-3 py-2 rounded-lg text-xs border-0 focus:ring-2 focus:ring-[var(--jarvis-cyan)] focus:ring-inset"
+              style={{
+                background: 'rgba(20, 20, 40, 0.6)',
+                color: 'var(--jarvis-text)',
+                border: '1px solid var(--jarvis-border)',
+              }}
+            >
+              {AI_MODELS.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.label} — {m.description}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* NVIDIA Fallback Model */}
+          <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--jarvis-border)' }}>
+            <label className="block text-[10px] font-medium mb-1.5 uppercase tracking-wider" style={{ color: 'var(--jarvis-text-muted)' }}>
+              Fallback Model (NVIDIA)
+            </label>
+            <select
+              value={nvidiaModel}
+              onChange={(e) => onNvidiaModelChange(e.target.value as NvidiaModelId)}
+              className="w-full px-3 py-2 rounded-lg text-xs border-0 focus:ring-2 focus:ring-[var(--jarvis-cyan)] focus:ring-inset"
+              style={{
+                background: 'rgba(20, 20, 40, 0.6)',
+                color: 'var(--jarvis-text)',
+                border: '1px solid var(--jarvis-border)',
+              }}
+            >
+              {NVIDIA_MODELS.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.label} — {m.description}
+                </option>
+              ))}
+            </select>
+            <span className="text-[10px] mt-1 block" style={{ color: 'var(--jarvis-text-muted)' }}>
+              Auto-activates when Gemini is down or rate-limited
+            </span>
+          </div>
+
           {/* Fallback Voice Accent (when Live API off or for non-English) */}
           {(!liveApiEnabled || !language.code.startsWith('en')) && showAccentSelector && (
             <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--jarvis-border)' }}>
               <label className="block text-[10px] font-medium mb-1.5 uppercase tracking-wider" style={{ color: 'var(--jarvis-text-muted)' }}>
-                Fallback Voice
+                Fallback Voice (Web Speech)
               </label>
               <select
                 value={voiceAccent}
@@ -217,6 +313,48 @@ export function ModelSettings({
               </select>
             </div>
           )}
+
+          {/* NVIDIA Riva TTS */}
+          <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--jarvis-border)' }}>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--jarvis-text-muted)' }}>
+                Voice (NVIDIA Riva — Primary)
+              </label>
+              <button
+                type="button"
+                onClick={onRivaToggle}
+                className="px-3 py-1 rounded-full text-[10px] font-medium transition-all"
+                style={{
+                  background: rivaEnabled ? 'rgba(118, 185, 0, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                  color: rivaEnabled ? '#76b900' : 'var(--jarvis-text-muted)',
+                  border: `1px solid ${rivaEnabled ? 'rgba(118, 185, 0, 0.3)' : 'var(--jarvis-border)'}`,
+                }}
+              >
+                {rivaEnabled ? 'ON' : 'OFF'}
+              </button>
+            </div>
+            {rivaEnabled && (
+              <select
+                value={rivaVoice}
+                onChange={(e) => onRivaVoiceChange(e.target.value as RivaVoice)}
+                className="w-full px-3 py-2 rounded-lg text-xs border-0 focus:ring-2 focus:ring-[#76b900] focus:ring-inset"
+                style={{
+                  background: 'rgba(20, 20, 40, 0.6)',
+                  color: 'var(--jarvis-text)',
+                  border: '1px solid var(--jarvis-border)',
+                }}
+              >
+                {RIVA_VOICES.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.label}
+                  </option>
+                ))}
+              </select>
+            )}
+            <span className="text-[10px] mt-1 block" style={{ color: 'var(--jarvis-text-muted)' }}>
+              {rivaEnabled ? 'Primary voice — Gemini/Web Speech as fallback' : 'Off — using Gemini/Web Speech fallback'}
+            </span>
+          </div>
 
           {/* Speech Speed */}
           <div className="px-4 py-3">

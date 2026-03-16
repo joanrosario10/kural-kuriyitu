@@ -4,14 +4,19 @@ import { CodeEditor } from './components/CodeEditor';
 import { Preview } from './components/Preview';
 import { ModelSettings } from './components/ModelSettings';
 import { VoicePanel } from './components/VoicePanel';
-import { LanguageSelector } from './components/LanguageSelector';
 import { FileTabs } from './components/FileTabs';
 import { ProactivePanel } from './components/ProactivePanel';
 import { OutputPanel } from './components/OutputPanel';
 import { ScreenRecorder } from './components/ScreenRecorder';
 import { GeminiIcon } from './components/Icons';
 import { processVoiceCommandStream, type ConversationEntry } from './lib/gemini';
-import { speak, stopSpeaking, pauseSpeaking, resumeSpeaking, hasVoiceForLang } from './lib/speech';
+import { speak, stopSpeaking, pauseSpeaking, resumeSpeaking } from './lib/speech';
+import {
+  queueRivaSpeak,
+  stopRiva,
+  checkRivaAvailable,
+  type RivaVoice,
+} from './lib/rivaTts';
 import { DEFAULT_LANGUAGE, findLanguage, type LanguageConfig } from './lib/languages';
 import { matchVoiceCommand, type AppActions } from './lib/voiceCommands';
 import {
@@ -42,6 +47,8 @@ import {
   type GeminiVoice,
   type LiveConnectionState,
 } from './lib/liveApi';
+import { DEFAULT_NVIDIA_MODEL, type NvidiaModelId } from './lib/nvidiaFallback';
+import type { AIModelId } from './lib/gemini';
 import { runJS, type ExecutionResult } from './lib/jsRunner';
 import { runPython, looksLikePython } from './lib/pyRunner';
 
@@ -77,7 +84,6 @@ function App() {
   const [highlightedLines, setHighlightedLines] = useState<number[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [speechRate, setSpeechRate] = useState(0.95);
-  const [voiceAvailable, setVoiceAvailable] = useState(true);
 
   // --- Proactive AI state (Feature 6) ---
   const [issues, setIssues] = useState<ProactiveIssue[]>([]);
@@ -91,6 +97,15 @@ function App() {
   const [geminiVoice, setGeminiVoice] = useState<GeminiVoice>(DEFAULT_VOICE);
   const liveClientRef = useRef<GeminiLiveClient | null>(null);
 
+  // --- Riva TTS state (primary voice, Web Speech as fallback) ---
+  const [rivaEnabled, setRivaEnabled] = useState(true);
+  const [rivaVoice, setRivaVoice] = useState<RivaVoice>('Magpie-Multilingual.EN-US.Aria');
+  const rivaCheckedRef = useRef(false);
+
+  // --- Code gen model state ---
+  const [codeModel, setCodeModel] = useState<AIModelId>('gemini-2.5-flash');
+  const [nvidiaModel, setNvidiaModel] = useState<NvidiaModelId>(DEFAULT_NVIDIA_MODEL);
+
   // --- Code execution state ---
   const [executionResult, setExecutionResult] = useState<ExecutionResult | null>(null);
   const [isRunningCode, setIsRunningCode] = useState(false);
@@ -99,6 +114,8 @@ function App() {
   // --- Refs ---
   const abortRef = useRef<AbortController | null>(null);
   const codeBeforeStreamRef = useRef<string>('');
+  const isStreamingRef = useRef(false);
+  const isSpeakingRef = useRef(false);
 
   // --- Lock dark mode ---
   useEffect(() => {
@@ -175,16 +192,32 @@ function App() {
 
   // --- Voice availability ---
   useEffect(() => {
-    const check = () => setVoiceAvailable(hasVoiceForLang(language.ttsLang));
-    check();
-    speechSynthesis.addEventListener('voiceschanged', check);
-    return () => speechSynthesis.removeEventListener('voiceschanged', check);
+    speechSynthesis.addEventListener('voiceschanged', () => {});
+    return () => {};
   }, [language]);
 
   // --- Load saved projects on mount ---
   useEffect(() => {
     listProjects().then(setSavedProjects).catch(() => {});
   }, []);
+
+  // --- Check Riva TTS availability on mount (primary voice) ---
+  useEffect(() => {
+    if (rivaCheckedRef.current) return;
+    rivaCheckedRef.current = true;
+    checkRivaAvailable().then((available) => {
+      if (available) {
+        console.log('[Riva TTS] NVIDIA voice active (primary)');
+      } else {
+        setRivaEnabled(false);
+        console.log('[Riva TTS] Proxy unavailable — falling back to Web Speech');
+      }
+    });
+  }, []);
+
+  // --- Keep refs in sync with state (avoids stale closures in timers) ---
+  useEffect(() => { isStreamingRef.current = isStreaming; }, [isStreaming]);
+  useEffect(() => { isSpeakingRef.current = isSpeaking; }, [isSpeaking]);
 
   // --- Proactive AI: analyze code after changes (Feature 6) ---
   // Debounce at 15s to avoid 429 rate limits on free-tier Gemini
@@ -199,14 +232,17 @@ function App() {
     const delay = Math.max(minInterval, minInterval - timeSinceLast);
 
     analyzeTimerRef.current = setTimeout(async () => {
+      // Re-check via refs (not stale closure values) right before speaking
+      if (isStreamingRef.current || isSpeakingRef.current) return;
+
       lastAnalyzeTimeRef.current = Date.now();
       setIsAnalyzing(true);
       try {
-        const results = await analyzeCode(code, apiKey, 'gemini-2.5-flash', language);
+        const results = await analyzeCode(code, apiKey, codeModel, language);
         setIssues(results);
 
-        // Speak first issue if any
-        if (results.length > 0 && !isSpeaking) {
+        // Only speak issues if nothing else is speaking or streaming (ref-based check)
+        if (results.length > 0 && !isSpeakingRef.current && !isStreamingRef.current) {
           const first = results[0];
           const msg = `Potential issue on line ${first.line}: ${first.message}. ${first.fix ? 'Say yes to fix it.' : ''}`;
           speakWithOptions(msg, {
@@ -227,15 +263,30 @@ function App() {
 
   const speakWithOptions = useCallback(
     (text: string, callbacks?: { onSpeakingStart?: () => void; onSpeakingEnd?: () => void }) => {
-      speak(text, {
-        rate: speechRate,
-        voice: language.code.startsWith('en') ? voiceAccent || undefined : undefined,
-        lang: language.ttsLang,
-        onSpeakingStart: callbacks?.onSpeakingStart,
-        onSpeakingEnd: callbacks?.onSpeakingEnd,
-      });
+      // Tamil not supported by Riva — always use Web Speech for Tamil
+      const tamilLang = language.code.startsWith('ta');
+      if (rivaEnabled && !tamilLang) {
+        // Kill Web Speech completely — only Riva speaks (queued, no overlap)
+        stopSpeaking();
+        queueRivaSpeak(text, {
+          voice: rivaVoice,
+          lang: language.ttsLang,
+          onStart: callbacks?.onSpeakingStart,
+          onEnd: callbacks?.onSpeakingEnd,
+        });
+      } else {
+        // Kill Riva completely — only Web Speech speaks (also used for Tamil)
+        stopRiva();
+        speak(text, {
+          rate: speechRate,
+          voice: language.code.startsWith('en') ? voiceAccent || undefined : undefined,
+          lang: language.ttsLang,
+          onSpeakingStart: callbacks?.onSpeakingStart,
+          onSpeakingEnd: callbacks?.onSpeakingEnd,
+        });
+      }
     },
-    [speechRate, voiceAccent, language],
+    [speechRate, voiceAccent, language, rivaEnabled, rivaVoice],
   );
 
   // --- Code execution ---
@@ -545,7 +596,7 @@ function App() {
       setIsSpeaking(false);
       setIsPaused(false);
       setHighlightedLines([]);
-      stopSpeaking();
+      stopSpeaking(); stopRiva();
       setStreamStatus('thinking');
       codeBeforeStreamRef.current = code;
 
@@ -556,7 +607,7 @@ function App() {
           transcript,
           code,
           apiKey ?? '',
-          'gemini-2.5-flash',
+          codeModel,
           language,
           history,
           {
@@ -600,6 +651,7 @@ function App() {
             },
           },
           abortController.signal,
+          nvidiaModel,
         );
       } catch (err) {
         if (!abortController.signal.aborted) {
@@ -665,7 +717,7 @@ function App() {
     setIssues([]);
     setExecutionResult(null);
     setHighlightedLines([]);
-    stopSpeaking();
+    stopSpeaking(); stopRiva();
     setIsSpeaking(false);
   }, [setCode]);
 
@@ -712,15 +764,11 @@ function App() {
         </div>
         <div className="flex items-center gap-1.5">
           <ScreenRecorder />
-          <LanguageSelector
-            language={language}
-            onChange={setLanguageState}
-            hasVoice={voiceAvailable}
-          />
           <ModelSettings
             voiceAccent={voiceAccent}
             onVoiceAccentChange={setVoiceAccent}
             language={language}
+            onLanguageChange={setLanguageState}
             speechRate={speechRate}
             onSpeechRateChange={setSpeechRate}
             liveModel={liveModel}
@@ -730,6 +778,14 @@ function App() {
             liveConnectionState={liveConnectionState}
             onToggleLiveApi={() => setLiveApiEnabled((prev) => !prev)}
             liveApiEnabled={liveApiEnabled}
+            codeModel={codeModel}
+            onCodeModelChange={setCodeModel}
+            nvidiaModel={nvidiaModel}
+            onNvidiaModelChange={setNvidiaModel}
+            rivaEnabled={rivaEnabled}
+            onRivaToggle={() => setRivaEnabled((prev) => !prev)}
+            rivaVoice={rivaVoice}
+            onRivaVoiceChange={setRivaVoice}
           />
         </div>
       </header>

@@ -1,5 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
 import type { LanguageConfig } from './languages';
+import { isNvidiaAvailable, processWithNvidia, type NvidiaModelId } from './nvidiaFallback';
 
 export type VoiceCommandAction = 'generate' | 'modify' | 'explain' | 'fix';
 
@@ -42,30 +43,48 @@ const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 function buildSystemPrompt(language: LanguageConfig): string {
   const langInstruction = language.code.startsWith('en')
     ? 'Write the EXPLANATION in English.'
-    : `The user is speaking in ${language.name}. Their command may be in ${language.name} script.
-IMPORTANT: Always write CODE in English (JavaScript/TypeScript/HTML).
-Write the EXPLANATION in ${language.name} so the user hears it in their language.`;
+    : `CRITICAL LANGUAGE RULE: The user speaks ${language.name} (${language.nativeName}).
+- Their voice command may be in ${language.nativeName} script — understand it and respond accordingly.
+- ALWAYS write CODE in English (JavaScript/React/JSX variable names, HTML tags, Tailwind classes).
+- ALWAYS write the ---EXPLAIN--- section in fluent, natural ${language.name} (${language.nativeName} script).
+- Do NOT translate code keywords, variable names, or CSS class names to ${language.name}.
+- Make the explanation sound conversational and fluent in ${language.name}, not robotic.`;
 
-  return `You are a voice-controlled coding assistant for developers, especially those with visual impairments.
+  return `You are a voice-controlled coding assistant. You build UI components.
+You support Tamil (தமிழ்), Hindi (हिन्दी), and English.
 
-You receive the current code in the editor and a voice command from the user.
+LANGUAGE RULE: ALWAYS generate React JSX code with Tailwind CSS. NEVER use Python, vanilla JS, or plain HTML unless the user EXPLICITLY says "python", "vanilla js", or "html only".
 
-You MUST respond using this EXACT marker format (no JSON, no markdown):
+You MUST respond using this EXACT marker format. NO markdown, NO \`\`\` code fences, NO language labels:
 
 ---ACTION---
 generate | modify | explain | fix
 ---CODE---
-(full updated code here — omit this entire section for explain action)
+(raw code here — no \`\`\`, no markdown — omit this section for explain action)
 ---EXPLAIN---
-(a brief spoken explanation, 1-3 sentences, optimized for text-to-speech)
+(1-3 sentence spoken explanation)
+
+CODE FORMAT RULES:
+- Output ONLY raw code after ---CODE---. Never \`\`\`javascript, never \`\`\`jsx, never any fence.
+- Do NOT include import statements for React/useState/useEffect — they are provided globally.
+- Do NOT include "export default" — the component renders automatically.
+- Write a single function component like: function LoginForm() { ... }
+
+STYLE GUIDE (shadcn/ui + Tailwind):
+- Tailwind CSS is loaded. Use utility classes directly in className.
+- Buttons: className="inline-flex items-center justify-center rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 transition-colors"
+- Inputs: className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
+- Cards: className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+- Labels: className="text-sm font-medium text-slate-700"
+- Headings: className="text-2xl font-bold tracking-tight text-slate-900"
+- Layout: Use flex, grid, gap-4, p-4, space-y-4
+- Colors: slate-900, slate-700, slate-400, white, blue-600 for primary actions
 
 Rules:
-- For "generate": create new code from scratch
-- For "modify": update the existing code per the command
-- For "explain": describe what the code does — do NOT include ---CODE--- section
-- For "fix": correct errors or bugs in the code
-- Keep explanations concise for text-to-speech
-- If the command is ambiguous, make a reasonable interpretation
+- "generate": create React+Tailwind component from scratch
+- "modify": update existing code
+- "explain": describe what the code does — NO ---CODE--- section
+- "fix": correct errors
 - ${langInstruction}`;
 }
 
@@ -115,14 +134,39 @@ interface ParsedMarkers {
   explanation: string;
 }
 
+function stripCodeFences(code: string): string {
+  return code
+    .replace(/^```\w*\s*\n?/gm, '')
+    .replace(/\n?```\s*$/gm, '')
+    .replace(/^```\s*/g, '')
+    .replace(/\s*```$/g, '')
+    .trim();
+}
+
+function stripImports(code: string): string {
+  return code
+    .split('\n')
+    .filter((line) => !/^\s*import\s+/.test(line))
+    .join('\n')
+    .replace(/export\s+default\s+\w+\s*;?\s*$/gm, '')
+    .replace(/export\s+default\s+/g, '')
+    .replace(/export\s+\{[^}]*\}\s*;?\s*/g, '')
+    .trim();
+}
+
 function parseMarkers(text: string): ParsedMarkers {
   const actionMatch = text.match(/---ACTION---\s*([\s\S]*?)(?=---CODE---|---EXPLAIN---|$)/);
   const codeMatch = text.match(/---CODE---\s*([\s\S]*?)(?=---EXPLAIN---|$)/);
   const explainMatch = text.match(/---EXPLAIN---\s*([\s\S]*?)$/);
 
+  let code = codeMatch?.[1]?.trim() ?? '';
+  // Always strip code fences and imports from AI response
+  code = stripCodeFences(code);
+  code = stripImports(code);
+
   return {
     action: (actionMatch?.[1]?.trim() ?? 'generate').toLowerCase(),
-    code: codeMatch?.[1]?.trim() ?? '',
+    code,
     explanation: explainMatch?.[1]?.trim() ?? '',
   };
 }
@@ -138,6 +182,7 @@ export async function processVoiceCommandStream(
   history: ConversationEntry[],
   callbacks: StreamCallbacks,
   signal?: AbortSignal,
+  nvidiaModel?: NvidiaModelId,
 ): Promise<void> {
   if (USE_MOCK) {
     await mockStream(command, currentCode, callbacks, signal);
@@ -210,6 +255,18 @@ export async function processVoiceCommandStream(
     callbacks.onComplete(finalParsed.code || currentCode, finalParsed.explanation);
   } catch (err) {
     if (signal?.aborted) return;
+
+    // Fallback to NVIDIA when Gemini fails (429, network error, etc.)
+    if (isNvidiaAvailable()) {
+      console.warn('[Gemini] Failed, falling back to NVIDIA:', err instanceof Error ? err.message : err);
+      try {
+        await processWithNvidia(command, currentCode, language, history, callbacks, signal, nvidiaModel);
+        return;
+      } catch (nvidiaErr) {
+        console.error('[NVIDIA fallback] Also failed:', nvidiaErr);
+      }
+    }
+
     callbacks.onError(err instanceof Error ? err : new Error(String(err)));
   }
 }

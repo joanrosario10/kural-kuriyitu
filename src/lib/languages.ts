@@ -9,8 +9,8 @@ export interface LanguageConfig {
 export const LANGUAGES: LanguageConfig[] = [
   { code: 'en-US', name: 'English (US)', nativeName: 'English', speechLang: 'en-US', ttsLang: 'en-US' },
   { code: 'en-IN', name: 'English (India)', nativeName: 'English (India)', speechLang: 'en-IN', ttsLang: 'en-IN' },
-  { code: 'ta-IN', name: 'Tamil', nativeName: 'தமிழ்', speechLang: 'ta-IN', ttsLang: 'ta' },
-  { code: 'hi-IN', name: 'Hindi', nativeName: 'हिन्दी', speechLang: 'hi-IN', ttsLang: 'hi' },
+  { code: 'ta-IN', name: 'Tamil', nativeName: 'தமிழ்', speechLang: 'ta-IN', ttsLang: 'ta-IN' },
+  { code: 'hi-IN', name: 'Hindi', nativeName: 'हिन्दी', speechLang: 'hi-IN', ttsLang: 'hi-IN' },
 ];
 
 export const DEFAULT_LANGUAGE = LANGUAGES[0];
