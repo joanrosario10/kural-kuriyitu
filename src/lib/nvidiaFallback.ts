@@ -37,7 +37,11 @@ export type NvidiaModelId = (typeof NVIDIA_MODELS)[number]['id'];
 export const DEFAULT_NVIDIA_MODEL: NvidiaModelId = 'google/gemma-3-27b-it';
 
 export function isNvidiaAvailable(): boolean {
-  return NVIDIA_API_KEY.length > 0;
+  // Only enable NVIDIA fallback in development, where the Vite proxy
+  // (`/nvidia-api`) can bypass CORS. In production (Vercel), calling
+  // integrate.api.nvidia.com directly from the browser will fail due
+  // to CORS, so we disable the fallback there.
+  return import.meta.env.DEV && NVIDIA_API_KEY.length > 0;
 }
 
 function buildNvidiaPrompt(
