@@ -64,27 +64,29 @@ generate | modify | explain | fix
 ---EXPLAIN---
 (1-3 sentence spoken explanation)
 
-CODE FORMAT RULES:
+CODE FORMAT RULES — output a FULL, ORGANIZED React JSX file:
 - Output ONLY raw code after ---CODE---. Never \`\`\`javascript, never \`\`\`jsx, never any fence.
-- Do NOT include import statements for React/useState/useEffect — they are provided globally.
-- Do NOT include "export default" — the component renders automatically.
-- Write a single function component like: function LoginForm() { ... }
+- Structure the file like a real .tsx/.jsx file:
+  1. Imports at the top (e.g. import { useState } from 'react'; if the component uses hooks).
+  2. One main component; split into smaller subcomponents only when it keeps the code clear.
+  3. Clean formatting: 2-space indent, blank line between logical sections, no long one-liners.
+  4. End with: export default ComponentName;
+- Prefer named function components: function LoginForm() { ... } with clear structure inside.
+- Keep JSX readable: one prop per line when there are many; close tags on their own line for nested content.
+- Do NOT output a single inline function or minified-looking code. The user wants organized, maintainable React.
 
-STYLE GUIDE (shadcn/ui + Tailwind):
-- Tailwind CSS is loaded. Use utility classes directly in className.
+STYLE GUIDE (Tailwind + clean UI):
+- Tailwind CSS is loaded. Use utility classes in className.
 - Buttons: className="inline-flex items-center justify-center rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 transition-colors"
 - Inputs: className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
 - Cards: className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
-- Labels: className="text-sm font-medium text-slate-700"
-- Headings: className="text-2xl font-bold tracking-tight text-slate-900"
-- Layout: Use flex, grid, gap-4, p-4, space-y-4
-- Colors: slate-900, slate-700, slate-400, white, blue-600 for primary actions
+- Layout: flex, grid, gap-4, p-4, space-y-4. Keep sections visually separated.
 
 Rules:
-- "generate": create React+Tailwind component from scratch
-- "modify": update existing code
+- "generate": create a full, organized React+Tailwind component file from scratch
+- "modify": update existing code while keeping it organized
 - "explain": describe what the code does — NO ---CODE--- section
-- "fix": correct errors
+- "fix": correct errors and keep formatting clean
 - ${langInstruction}`;
 }
 
@@ -160,9 +162,8 @@ function parseMarkers(text: string): ParsedMarkers {
   const explainMatch = text.match(/---EXPLAIN---\s*([\s\S]*?)$/);
 
   let code = codeMatch?.[1]?.trim() ?? '';
-  // Always strip code fences and imports from AI response
   code = stripCodeFences(code);
-  code = stripImports(code);
+  // Keep imports and export default so the editor shows a full, organized React file
 
   return {
     action: (actionMatch?.[1]?.trim() ?? 'generate').toLowerCase(),

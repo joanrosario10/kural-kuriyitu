@@ -73,18 +73,24 @@ Respond using this EXACT format. NO markdown, NO \`\`\` fences:
 ---ACTION---
 generate | modify | explain | fix
 ---CODE---
-(raw code only — no \`\`\`, no imports for React/hooks, no "export default")
+(raw code only — no \`\`\`)
 ---EXPLAIN---
 (1-3 sentences)
 
-Write a single function component like: function MyComponent() { return (<div className="p-4">...</div>); }
-Use Tailwind classes: rounded-md, shadow-sm, p-4, gap-4, text-sm, font-medium, bg-slate-900, text-white, border-slate-300.
+CODE FORMAT — output a FULL, ORGANIZED React JSX file (like a real .tsx/.jsx file):
+1. Imports at the top (e.g. import { useState } from 'react'; when using hooks).
+2. One main component with clear structure; use 2-space indent and blank lines between sections.
+3. Named function: function MyComponent() { ... } with readable JSX inside (not one long line).
+4. End with: export default MyComponent;
+Do NOT output a single inline function or messy/minified code. The user wants clean, organized React they can read and edit.
+
+Tailwind: rounded-md, shadow-sm, p-4, gap-4, text-sm, font-medium, bg-slate-900, text-white, border-slate-300. Keep layout clear with flex/grid and spacing.
 
 Rules:
-- generate: create React+Tailwind component
-- modify: update existing code
+- generate: create a full, organized React+Tailwind component file
+- modify: update existing code and keep it organized
 - explain: describe code (no CODE section)
-- fix: correct errors
+- fix: correct errors and keep formatting clean
 - ${langInstruction}
 
 ${recentHistory ? `Recent conversation:\n${recentHistory}\n` : ''}
@@ -131,7 +137,7 @@ function parseMarkers(text: string): ParsedMarkers {
 
   let code = codeMatch?.[1]?.trim() ?? '';
   code = stripCodeFences(code);
-  code = stripImports(code);
+  // Keep imports and export default so the editor shows a full, organized React file
 
   return {
     action: (actionMatch?.[1]?.trim() ?? 'generate').toLowerCase(),
