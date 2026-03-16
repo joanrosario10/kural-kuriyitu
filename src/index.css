@@ -99,6 +99,12 @@ body {
   animation: page-fade-in 0.6s ease-out;
 }
 
+/* Monaco editor: fallback when CDN icon fonts 404 so UI still renders */
+.monaco-editor .codicon,
+.monaco-editor [class*="codicon"] {
+  font-family: codicon, "Segoe Fluent Icons", "Segoe MDL2 Assets", sans-serif;
+}
+
 /* ========== JARVIS Animations ========== */
 
 @keyframes pulse {
