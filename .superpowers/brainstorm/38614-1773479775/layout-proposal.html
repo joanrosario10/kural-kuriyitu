@@ -1,0 +1,177 @@
+<h2>Kural Kuriyitu v2 — Proposed Layout</h2>
+<p class="subtitle">JARVIS-energy glassmorphism dark IDE with bidirectional voice</p>
+
+<div class="split" style="gap:24px;">
+  <!-- Current Layout -->
+  <div class="mockup">
+    <div class="mockup-header">Current Layout</div>
+    <div class="mockup-body" style="background:#0a0a12;color:#e0e6ed;font-family:monospace;font-size:11px;padding:0;">
+      <!-- Header -->
+      <div style="background:rgba(0,212,255,0.08);padding:6px 10px;border-bottom:1px solid rgba(0,212,255,0.2);display:flex;justify-content:space-between;align-items:center;">
+        <span style="color:#00d4ff;">⬡ Kural Kuriyitu</span>
+        <span style="font-size:9px;opacity:0.5;">[Recorder] [Lang] [Settings]</span>
+      </div>
+      <div style="display:flex;height:280px;">
+        <!-- Voice Panel 320px -->
+        <div style="width:35%;border-right:1px solid rgba(0,212,255,0.15);padding:8px;display:flex;flex-direction:column;align-items:center;">
+          <div style="width:60px;height:60px;border-radius:50%;border:2px solid #00d4ff;display:flex;align-items:center;justify-content:center;margin:8px 0;">🎤</div>
+          <div style="font-size:9px;color:#00d4ff;margin:4px 0;">Tap to speak</div>
+          <div style="font-size:8px;opacity:0.4;margin:4px 0;">Quick chips...</div>
+          <div style="flex:1;width:100%;margin-top:8px;overflow:hidden;">
+            <div style="font-size:8px;opacity:0.3;margin-bottom:4px;">Conversation:</div>
+            <div style="background:rgba(0,212,255,0.05);padding:4px;border-radius:4px;font-size:8px;margin:2px 0;">User: make login</div>
+            <div style="background:rgba(255,255,255,0.03);padding:4px;border-radius:4px;font-size:8px;margin:2px 0;">AI: Created login form...</div>
+          </div>
+        </div>
+        <!-- Editor + Preview -->
+        <div style="flex:1;display:flex;flex-direction:column;">
+          <div style="display:flex;flex:1;">
+            <div style="flex:1;padding:4px;">
+              <div style="font-size:8px;color:#00d4ff;margin-bottom:2px;">FileTabs | Editor</div>
+              <div style="background:#0d0d18;padding:6px;border-radius:4px;height:80%;font-size:8px;color:#888;">
+                const App = () =&gt; {<br/>
+                &nbsp;&nbsp;return &lt;div&gt;...<br/>
+                }
+              </div>
+            </div>
+            <div style="width:35%;padding:4px;">
+              <div style="font-size:8px;opacity:0.5;margin-bottom:2px;">Preview (small)</div>
+              <div style="background:#fff;border-radius:4px;height:80%;padding:4px;">
+                <div style="font-size:8px;color:#333;">rendered output</div>
+              </div>
+            </div>
+          </div>
+          <div style="padding:4px;font-size:8px;opacity:0.3;border-top:1px solid rgba(255,255,255,0.05);">
+            Terminal panel (unused) | ProactivePanel
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Proposed Layout -->
+  <div class="mockup">
+    <div class="mockup-header">Proposed v2 Layout</div>
+    <div class="mockup-body" style="background:#0a0a12;color:#e0e6ed;font-family:monospace;font-size:11px;padding:0;">
+      <!-- Header -->
+      <div style="background:rgba(0,212,255,0.06);padding:6px 10px;border-bottom:1px solid rgba(0,212,255,0.25);display:flex;justify-content:space-between;align-items:center;backdrop-filter:blur(8px);">
+        <span style="color:#00d4ff;text-shadow:0 0 8px rgba(0,212,255,0.4);">⬡ Kural Kuriyitu</span>
+        <span style="font-size:9px;opacity:0.5;">[Recorder] [Lang] [Model] [Settings]</span>
+      </div>
+      <div style="display:flex;height:280px;">
+        <!-- Voice Panel (collapsible) -->
+        <div style="width:30%;border-right:1px solid rgba(0,212,255,0.2);padding:8px;display:flex;flex-direction:column;align-items:center;background:rgba(0,212,255,0.02);">
+          <!-- Waveform Mic -->
+          <div style="width:70px;height:70px;border-radius:50%;border:2px solid #00d4ff;display:flex;align-items:center;justify-content:center;margin:6px 0;box-shadow:0 0 20px rgba(0,212,255,0.3),inset 0 0 15px rgba(0,212,255,0.1);position:relative;">
+            <div style="position:absolute;width:80px;height:80px;border-radius:50%;border:1px solid rgba(0,212,255,0.15);"></div>
+            <div style="position:absolute;width:90px;height:90px;border-radius:50%;border:1px solid rgba(0,212,255,0.08);"></div>
+            <span style="font-size:20px;">🎤</span>
+          </div>
+          <div style="font-size:9px;color:#00d4ff;margin:4px 0;text-shadow:0 0 6px rgba(0,212,255,0.3);">● LIVE — Listening</div>
+          <div style="font-size:8px;opacity:0.4;margin:4px 0;">Quick chips...</div>
+          <!-- Chat Bubbles -->
+          <div style="flex:1;width:100%;margin-top:6px;overflow:hidden;">
+            <div style="font-size:8px;opacity:0.3;margin-bottom:4px;">Conversation:</div>
+            <div style="background:rgba(0,212,255,0.12);padding:5px 8px;border-radius:12px 12px 4px 12px;font-size:8px;margin:3px 0;margin-left:auto;width:fit-content;max-width:85%;text-align:right;color:#00d4ff;">make a login form</div>
+            <div style="background:rgba(255,255,255,0.06);padding:5px 8px;border-radius:12px 12px 12px 4px;font-size:8px;margin:3px 0;width:fit-content;max-width:85%;">Created a responsive login form with validation ✨</div>
+            <div style="background:rgba(0,212,255,0.12);padding:5px 8px;border-radius:12px 12px 4px 12px;font-size:8px;margin:3px 0;margin-left:auto;width:fit-content;max-width:85%;text-align:right;color:#00d4ff;">add dark mode</div>
+          </div>
+          <!-- Speaking controls -->
+          <div style="display:flex;gap:6px;align-items:center;margin-top:4px;padding:4px 8px;background:rgba(0,212,255,0.05);border-radius:8px;">
+            <div style="display:flex;gap:1px;align-items:flex-end;height:12px;">
+              <div style="width:2px;height:4px;background:#00d4ff;border-radius:1px;"></div>
+              <div style="width:2px;height:8px;background:#00d4ff;border-radius:1px;"></div>
+              <div style="width:2px;height:12px;background:#00d4ff;border-radius:1px;"></div>
+              <div style="width:2px;height:6px;background:#00d4ff;border-radius:1px;"></div>
+              <div style="width:2px;height:10px;background:#00d4ff;border-radius:1px;"></div>
+            </div>
+            <span style="font-size:8px;color:#00d4ff;">Speaking...</span>
+          </div>
+        </div>
+        <!-- Editor + Preview (resizable) -->
+        <div style="flex:1;display:flex;flex-direction:column;">
+          <div style="display:flex;flex:1;">
+            <div style="flex:1;padding:4px;">
+              <div style="font-size:8px;color:#00d4ff;margin-bottom:2px;display:flex;justify-content:space-between;">
+                <span>app.tsx | styles.css | +</span>
+                <span style="opacity:0.4;">Ln 12, Col 4</span>
+              </div>
+              <div style="background:#0d0d18;padding:6px;border-radius:4px;height:85%;font-size:8px;color:#888;border:1px solid rgba(0,212,255,0.08);">
+                <span style="color:#00d4ff;">const</span> App = () =&gt; {<br/>
+                &nbsp;&nbsp;<span style="color:#00d4ff;">return</span> (<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span style="background:rgba(0,212,255,0.06);display:inline;">&lt;div className="login"&gt;</span><br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;...<br/>
+                &nbsp;&nbsp;)<br/>
+                }
+              </div>
+            </div>
+            <div style="width:38%;padding:4px;position:relative;">
+              <div style="font-size:8px;display:flex;justify-content:space-between;margin-bottom:2px;">
+                <span style="opacity:0.5;">Preview</span>
+                <span style="color:#00d4ff;cursor:pointer;">⛶ Fullscreen</span>
+              </div>
+              <div style="background:#fff;border-radius:4px;height:85%;padding:6px;border:1px solid rgba(0,212,255,0.15);">
+                <div style="font-size:8px;color:#333;">
+                  <div style="background:#f0f0f0;padding:8px;border-radius:4px;text-align:center;">
+                    <div style="font-size:10px;font-weight:bold;color:#333;">Login</div>
+                    <div style="background:#fff;border:1px solid #ddd;border-radius:3px;padding:3px;margin:3px 0;font-size:7px;color:#999;">Email</div>
+                    <div style="background:#fff;border:1px solid #ddd;border-radius:3px;padding:3px;margin:3px 0;font-size:7px;color:#999;">Password</div>
+                    <div style="background:#00d4ff;color:#fff;border-radius:3px;padding:3px;font-size:7px;margin-top:4px;">Sign In</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Proactive bar (replaces terminal) -->
+          <div style="padding:4px 8px;font-size:8px;border-top:1px solid rgba(0,212,255,0.1);display:flex;align-items:center;gap:8px;background:rgba(0,212,255,0.02);">
+            <span style="color:#ff6b6b;">!!</span>
+            <span>Line 8: missing aria-label on input</span>
+            <span style="color:#00d4ff;margin-left:auto;cursor:pointer;">Fix</span>
+            <span style="opacity:0.3;cursor:pointer;">✕</span>
+            <span style="opacity:0.3;margin-left:8px;">2 more issues</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h3 style="margin-top:24px;">Key Changes</h3>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
+  <div style="background:rgba(0,212,255,0.05);padding:12px;border-radius:8px;border:1px solid rgba(0,212,255,0.1);">
+    <h4 style="color:#00d4ff;margin:0 0 6px 0;font-size:13px;">Voice Panel</h4>
+    <ul style="margin:0;padding-left:16px;font-size:12px;line-height:1.6;">
+      <li>Waveform ripple mic with glow rings</li>
+      <li>LIVE status indicator (WebSocket)</li>
+      <li>Chat bubbles (user right/cyan, AI left)</li>
+      <li>Collapsible sidebar</li>
+    </ul>
+  </div>
+  <div style="background:rgba(0,212,255,0.05);padding:12px;border-radius:8px;border:1px solid rgba(0,212,255,0.1);">
+    <h4 style="color:#00d4ff;margin:0 0 6px 0;font-size:13px;">Editor Area</h4>
+    <ul style="margin:0;padding-left:16px;font-size:12px;line-height:1.6;">
+      <li>Terminal removed entirely</li>
+      <li>Proactive bar at bottom (compact)</li>
+      <li>Fullscreen preview toggle</li>
+      <li>Cyan line highlight during TTS</li>
+    </ul>
+  </div>
+  <div style="background:rgba(0,212,255,0.05);padding:12px;border-radius:8px;border:1px solid rgba(0,212,255,0.1);">
+    <h4 style="color:#00d4ff;margin:0 0 6px 0;font-size:13px;">Live API</h4>
+    <ul style="margin:0;padding-left:16px;font-size:12px;line-height:1.6;">
+      <li>WebSocket audio streaming (bidirectional)</li>
+      <li>Native Gemini voice (expressive/affective)</li>
+      <li>Text streaming kept for code gen</li>
+      <li>Web Speech API as fallback</li>
+    </ul>
+  </div>
+  <div style="background:rgba(0,212,255,0.05);padding:12px;border-radius:8px;border:1px solid rgba(0,212,255,0.1);">
+    <h4 style="color:#00d4ff;margin:0 0 6px 0;font-size:13px;">New Features</h4>
+    <ul style="margin:0;padding-left:16px;font-size:12px;line-height:1.6;">
+      <li>Pyodide for Python execution</li>
+      <li>Web Worker JS sandbox</li>
+      <li>"Run code" voice command</li>
+      <li>PWA install prompt</li>
+    </ul>
+  </div>
+</div>

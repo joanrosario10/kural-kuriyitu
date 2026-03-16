@@ -1,0 +1,441 @@
+/* VoiceCode – JARVIS UI component styles */
+
+/* ========== Glass Header — Holographic Bar ========== */
+.app-header {
+  height: 56px;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(10, 10, 15, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--jarvis-border-glow);
+  font-family: var(--font-display);
+  position: relative;
+  z-index: 10;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Holographic gradient line under header */
+.app-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 212, 255, 0.15) 10%,
+    var(--jarvis-cyan-dim) 25%,
+    var(--jarvis-cyan) 50%,
+    var(--jarvis-cyan-dim) 75%,
+    rgba(0, 212, 255, 0.15) 90%,
+    transparent 100%
+  );
+  opacity: 0.6;
+}
+
+/* App title — glowing JARVIS text */
+.app-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--jarvis-text);
+  text-shadow: 0 0 20px rgba(0, 212, 255, 0.25);
+  transition: text-shadow var(--transition-normal);
+}
+
+.app-title:hover {
+  text-shadow: 0 0 30px rgba(0, 212, 255, 0.4), 0 0 10px rgba(0, 212, 255, 0.2);
+}
+
+/* ========== Voice Panel – Glass Sidebar ========== */
+.voice-panel {
+  width: 320px;
+  min-width: 320px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur-heavy);
+  -webkit-backdrop-filter: var(--glass-blur-heavy);
+  border-right: 1px solid var(--jarvis-border-glow);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Cyan gradient edge glow */
+.voice-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(0, 212, 255, 0.3) 20%,
+    var(--jarvis-cyan-dim) 50%,
+    rgba(0, 212, 255, 0.3) 80%,
+    transparent 100%
+  );
+  opacity: 0.5;
+}
+
+/* Subtle ambient glow at mic area */
+.voice-panel::after {
+  content: '';
+  position: absolute;
+  top: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0, 212, 255, 0.04) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* ========== JARVIS Mic Button — Arc Reactor ========== */
+.fab-voice {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 2px solid var(--jarvis-cyan-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: visible;
+  background: radial-gradient(
+    circle at center,
+    rgba(0, 212, 255, 0.1) 0%,
+    rgba(0, 212, 255, 0.04) 40%,
+    rgba(0, 212, 255, 0.01) 60%,
+    transparent 70%
+  );
+  box-shadow:
+    0 0 25px rgba(0, 212, 255, 0.1),
+    0 0 50px rgba(0, 212, 255, 0.03),
+    inset 0 0 30px rgba(0, 212, 255, 0.05);
+}
+
+.fab-voice:not(:disabled):hover {
+  transform: scale(1.06);
+  border-color: var(--jarvis-cyan);
+  box-shadow:
+    0 0 35px rgba(0, 212, 255, 0.25),
+    0 0 70px rgba(0, 212, 255, 0.06),
+    inset 0 0 40px rgba(0, 212, 255, 0.08);
+}
+
+.fab-voice:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+/* Listening state — intense glow + breathing */
+.fab-voice.listening {
+  background: radial-gradient(
+    circle at center,
+    rgba(0, 212, 255, 0.2) 0%,
+    rgba(0, 212, 255, 0.08) 40%,
+    rgba(0, 212, 255, 0.02) 60%,
+    transparent 70%
+  ) !important;
+  border-color: var(--jarvis-cyan) !important;
+  animation: glow-pulse-intense 1.8s ease-in-out infinite;
+}
+
+/* Triple ripple rings when listening */
+.fab-voice.listening::before,
+.fab-voice.listening::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 1.5px solid var(--jarvis-cyan);
+  transform: translate(-50%, -50%) scale(1);
+  animation: ring-expand 2.2s ease-out infinite;
+}
+
+.fab-voice.listening::after {
+  animation-delay: 0.7s;
+}
+
+/* Third ring via outline trick */
+.fab-voice.listening {
+  outline: 1.5px solid transparent;
+  outline-offset: 8px;
+  animation: glow-pulse-intense 1.8s ease-in-out infinite, border-breathe 2s ease-in-out infinite;
+}
+
+/* Processing state — holographic spin ring */
+.fab-voice.processing::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 130%;
+  height: 130%;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: var(--jarvis-cyan);
+  border-right-color: rgba(0, 212, 255, 0.3);
+  animation: arc-spin 1.2s linear infinite;
+}
+
+/* ========== Quick Command Chips – Neumorphic Glass ========== */
+.chip-command {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  background: rgba(20, 20, 40, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--jarvis-text-dim);
+  font-size: 12px;
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 2px 6px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.chip-command:hover {
+  background: rgba(0, 212, 255, 0.1);
+  border-color: var(--jarvis-cyan-border);
+  color: var(--jarvis-cyan);
+  transform: scale(1.04) translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(0, 212, 255, 0.1),
+    0 4px 12px rgba(0, 212, 255, 0.12);
+}
+
+.chip-command:active {
+  transform: scale(0.98);
+}
+
+/* ========== AI Reply Card – Glass Bubble ========== */
+.card-ai-reply {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-radius: var(--radius-md);
+  border: var(--glass-border);
+  box-shadow: var(--elevation-1);
+  padding: 12px 16px;
+  transition: box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+
+.card-ai-reply:hover {
+  box-shadow: var(--elevation-2);
+  transform: translateY(-1px);
+}
+
+/* ========== Conversation Bubbles — JARVIS Dialog ========== */
+.chat-bubble {
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  max-width: 90%;
+  animation: fade-up 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  transition: transform var(--transition-fast);
+}
+
+.chat-bubble:hover {
+  transform: scale(1.01);
+}
+
+.chat-bubble-user {
+  background: rgba(0, 212, 255, 0.12);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  color: var(--jarvis-cyan);
+  align-self: flex-end;
+  border-bottom-right-radius: 4px;
+}
+
+.chat-bubble-ai {
+  background: var(--glass-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--jarvis-border-glow);
+  color: var(--jarvis-text);
+  align-self: flex-start;
+  border-bottom-left-radius: 4px;
+  box-shadow: var(--glass-glow);
+}
+
+/* ========== Editor Container – Holographic Panel ========== */
+.editor-container {
+  background: var(--jarvis-bg-elevated);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--jarvis-border-glow);
+  box-shadow: var(--elevation-2);
+  overflow: hidden;
+  position: relative;
+  transition: box-shadow var(--transition-smooth);
+}
+
+.editor-container:focus-within {
+  box-shadow: var(--elevation-3), 0 0 0 1px rgba(0, 212, 255, 0.15);
+}
+
+.editor-toolbar {
+  height: 44px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(10, 10, 20, 0.6);
+  border-bottom: 1px solid var(--jarvis-border);
+  font-family: var(--font-body);
+}
+
+/* ========== Preview Panel — Floating Glass ========== */
+.preview-panel {
+  background: var(--jarvis-bg-elevated);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--jarvis-border-glow);
+  box-shadow: var(--elevation-2);
+  overflow: hidden;
+  transition: box-shadow var(--transition-smooth), transform var(--transition-smooth);
+}
+
+.preview-panel:hover {
+  box-shadow: var(--elevation-3);
+  transform: perspective(1000px) rotateY(-0.5deg) translateY(-1px);
+}
+
+/* ========== Icon Button – Glass ========== */
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--jarvis-text-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.icon-btn:hover {
+  background: rgba(0, 212, 255, 0.1);
+  color: var(--jarvis-cyan);
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.1);
+}
+
+.icon-btn:focus-visible {
+  outline: 1px solid var(--jarvis-cyan);
+  outline-offset: 2px;
+}
+
+/* ========== Section Label — JARVIS HUD ========== */
+.section-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--jarvis-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-label::before {
+  content: '';
+  display: block;
+  width: 12px;
+  height: 1px;
+  background: linear-gradient(90deg, var(--jarvis-cyan-dim), transparent);
+}
+
+/* ========== Speaking Soundbars — Enhanced ========== */
+.speaking-bars {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 14px;
+}
+
+.speaking-bar {
+  width: 3px;
+  border-radius: 2px;
+  background: var(--jarvis-cyan);
+  transform-origin: bottom;
+  animation: soundbar 0.5s ease-in-out infinite;
+  box-shadow: 0 0 4px rgba(0, 212, 255, 0.3);
+}
+
+/* ========== Streaming Indicator ========== */
+.streaming-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--jarvis-cyan);
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.5);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* ========== Run Button — Glowing ========== */
+.run-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  border-radius: var(--radius-sm);
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  background: var(--jarvis-cyan);
+  color: var(--jarvis-bg);
+  box-shadow: 0 2px 8px rgba(0, 212, 255, 0.25);
+}
+
+.run-btn:hover:not(:disabled) {
+  background: var(--jarvis-cyan-hover);
+  box-shadow: 0 4px 16px rgba(0, 212, 255, 0.35);
+  transform: translateY(-1px);
+}
+
+.run-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.run-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ========== Responsive ========== */
+@media (max-width: 768px) {
+  .voice-panel {
+    width: 100%;
+    min-width: unset;
+    max-height: 40vh;
+    border-right: none;
+    border-bottom: 1px solid var(--jarvis-border-glow);
+  }
+
+  .fab-voice {
+    width: 100px;
+    height: 100px;
+  }
+}

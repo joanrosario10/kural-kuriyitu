@@ -1,0 +1,20 @@
+{
+  "name": "Kural Kuriyitu — Voice Coding IDE",
+  "short_name": "Kural Kuriyitu",
+  "description": "Tamil/English voice-controlled coding IDE powered by Gemini AI. Code hands-free with JARVIS-like intelligence.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#00d4ff",
+  "orientation": "any",
+  "categories": ["developer tools", "productivity", "education"],
+  "lang": "en",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
