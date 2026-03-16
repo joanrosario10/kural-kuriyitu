@@ -1,11 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 /**
- * Server-side proxy for NVIDIA NIM.
- *
- * This avoids browser CORS issues by keeping the actual call to
- * https://integrate.api.nvidia.com on the server. The frontend
- * talks only to /api/nvidia/..., which is same-origin.
+ * Catch-all proxy for NVIDIA NIM: /api/nvidia/v1/chat/completions etc.
+ * Forwards to https://integrate.api.nvidia.com to avoid browser CORS.
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -18,10 +15,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'NVIDIA API key not configured' });
   }
 
+  const pathSegments = req.query.path;
+  const path = Array.isArray(pathSegments) ? pathSegments.join('/') : String(pathSegments || '');
+  const upstreamPath = path ? `/${path}` : '';
+
   try {
-    // Strip the /api/nvidia prefix and forward the remainder to NVIDIA.
-    const path = req.url?.replace(/^\/api\/nvidia/, '') || '';
-    const url = `https://integrate.api.nvidia.com${path}`;
+    const url = `https://integrate.api.nvidia.com${upstreamPath}`;
 
     const upstream = await fetch(url, {
       method: 'POST',
@@ -34,7 +33,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const text = await upstream.text();
 
-    // Mirror status and basic headers; CORS is same-origin here.
     res.status(upstream.status);
     res.setHeader('Content-Type', upstream.headers.get('content-type') || 'application/json');
     return res.send(text);
@@ -43,4 +41,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'Failed to reach NVIDIA API' });
   }
 }
-
