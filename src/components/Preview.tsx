@@ -61,11 +61,11 @@ function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-// In dev we use the Tailwind CDN for the preview iframe; in production we avoid it (CDN warns and is not recommended).
-const TAILWIND_SCRIPT =
-  import.meta.env.DEV
-    ? '<script src="https://cdn.tailwindcss.com"></script>'
-    : '';
+// Preview iframe styling:
+// We load Tailwind via CDN inside the *sandboxed iframe* so generated previews
+// render correctly on production deployments too. (This may log a console warning,
+// but avoids "unstyled" previews.)
+const TAILWIND_SCRIPT = '<script src="https://cdn.tailwindcss.com"></script>';
 
 const REACT_CDN = 'https://unpkg.com/react@18/umd/react.development.js';
 const REACT_DOM_CDN = 'https://unpkg.com/react-dom@18/umd/react-dom.development.js';
