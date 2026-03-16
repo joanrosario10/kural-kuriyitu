@@ -30,7 +30,7 @@ export const RIVA_VOICES: { id: RivaVoice; label: string; lang: string }[] = [
   { id: 'Magpie-Multilingual.HI-IN.Leo', label: 'Leo (Hindi Male)', lang: 'hi-IN' },
 ];
 
-const TTS_ENDPOINT = '/riva-tts/';
+const TTS_ENDPOINT = import.meta.env.DEV ? '/riva-tts/' : '/api/riva-tts/';
 
 let audioContext: AudioContext | null = null;
 let currentSource: AudioBufferSourceNode | null = null;
@@ -42,6 +42,13 @@ let isPlaying = false;
  * Check if the Riva TTS proxy is running.
  */
 export async function checkRivaAvailable(): Promise<boolean> {
+  if (!import.meta.env.DEV && typeof window !== 'undefined') {
+    // In production we only consider Riva available when the backend
+    // proxy `/api/riva-tts/` is configured; for now, default to false
+    // so the app cleanly falls back to Web Speech without 404s.
+    rivaAvailable = false;
+    return rivaAvailable;
+  }
   if (rivaAvailable !== null) return rivaAvailable;
   try {
     const resp = await fetch(TTS_ENDPOINT, {
