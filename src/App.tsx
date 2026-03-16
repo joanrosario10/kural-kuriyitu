@@ -99,7 +99,8 @@ function App() {
   const liveClientRef = useRef<GeminiLiveClient | null>(null);
 
   // --- Riva TTS state (primary voice, Web Speech as fallback) ---
-  const [rivaEnabled, setRivaEnabled] = useState(true);
+  // In production, default to Web Speech unless Riva is confirmed available.
+  const [rivaEnabled, setRivaEnabled] = useState(import.meta.env.DEV);
   const [rivaVoice, setRivaVoice] = useState<RivaVoice>('Magpie-Multilingual.EN-US.Aria');
   const rivaCheckedRef = useRef(false);
 
@@ -220,8 +221,10 @@ function App() {
     checkRivaAvailable().then((available) => {
       if (available) {
         console.log('[Riva TTS] NVIDIA voice active (primary)');
+        setRivaEnabled(true);
       } else {
         console.log('[Riva TTS] Proxy unavailable — will retry and fall back per request');
+        setRivaEnabled(false);
       }
     });
   }, []);
@@ -285,6 +288,8 @@ function App() {
           onStart: callbacks?.onSpeakingStart,
           onEnd: callbacks?.onSpeakingEnd,
           onFailed: (failedText) => {
+            // If Riva failed, flip the app back to Web Speech for subsequent calls.
+            setRivaEnabled(false);
             speak(failedText, {
               rate: speechRate,
               voice: language.code.startsWith('en') ? voiceAccent || undefined : undefined,
