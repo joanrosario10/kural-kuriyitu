@@ -1,3 +1,4 @@
+import './monacoWorkers'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import loader from '@monaco-editor/loader'

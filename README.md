@@ -37,3 +37,8 @@ Voice-controlled coding platform for accessibility. Code by voice using Gemini A
 - @google/genai
 - Tailwind CSS
 - Web Speech API
+
+## Production / deployment
+
+- **Riva TTS 502**: In production, `/api/riva-tts/` will return 502 unless you run the Riva TTS proxy and wire it to that route. The app is built to retry and fall back (e.g. browser TTS) when the proxy is unavailable.
+- **Font 404s**: If you see 404s for `/assets/*.woff2` or `.woff`, ensure the full Vite build output (`dist/`, including all hashed files under `dist/assets/`) is deployed. Missing asset files usually mean the deploy is not serving the complete `dist` folder.

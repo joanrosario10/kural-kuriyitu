@@ -61,7 +61,12 @@ function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-const TAILWIND_CDN = 'https://cdn.tailwindcss.com';
+// In dev we use the Tailwind CDN for the preview iframe; in production we avoid it (CDN warns and is not recommended).
+const TAILWIND_SCRIPT =
+  import.meta.env.DEV
+    ? '<script src="https://cdn.tailwindcss.com"></script>'
+    : '';
+
 const REACT_CDN = 'https://unpkg.com/react@18/umd/react.development.js';
 const REACT_DOM_CDN = 'https://unpkg.com/react-dom@18/umd/react-dom.development.js';
 const BABEL_CDN = 'https://unpkg.com/@babel/standalone@7/babel.min.js';
@@ -126,7 +131,7 @@ function wrapHtml(body: string, script?: string): string {
 <html><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<script src="${TAILWIND_CDN}"></script>
+${TAILWIND_SCRIPT}
 <style>${BASE_STYLES}</style>
 </head><body>
 ${body}
@@ -167,7 +172,7 @@ function buildReactDoc(code: string): string {
 <html><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<script src="${TAILWIND_CDN}"></script>
+${TAILWIND_SCRIPT}
 <style>
 ${BASE_STYLES}
 #root { min-height: 100vh; }
