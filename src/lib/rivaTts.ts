@@ -39,23 +39,16 @@ let speechQueue: Array<{ text: string; voice: RivaVoice; lang: string; onStart?:
 let isPlaying = false;
 
 /**
- * Check if the Riva TTS proxy is running.
+ * Check if the Riva TTS proxy is available (dev: local proxy, prod: /api/riva-tts).
  */
 export async function checkRivaAvailable(): Promise<boolean> {
-  if (!import.meta.env.DEV && typeof window !== 'undefined') {
-    // In production we only consider Riva available when the backend
-    // proxy `/api/riva-tts/` is configured; for now, default to false
-    // so the app cleanly falls back to Web Speech without 404s.
-    rivaAvailable = false;
-    return rivaAvailable;
-  }
   if (rivaAvailable !== null) return rivaAvailable;
   try {
     const resp = await fetch(TTS_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: 'test', voice: 'Magpie-Multilingual.EN-US.Aria', language_code: 'en-US' }),
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(8000),
     });
     rivaAvailable = resp.ok;
   } catch {
